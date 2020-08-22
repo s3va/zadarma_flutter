@@ -46,12 +46,16 @@ Future<Balance> fetchBalance(String key, String sec) async {
   request.headers.add("Authorization", "$key:$b64dgist",preserveHeaderCase: true);
   HttpClientResponse response = await request.close()
       .timeout(const Duration(seconds: 15));
+  //print("@@@@length@@@ ${response.length}");
 
   String reply = await response.transform(utf8.decoder).join();
   print(reply);
   httpClient.close();
 
-  //print("@@@bodyBytes@@@@ ${response.bodyBytes}");
+  print("@@@headers@@@@ ${response.headers}");
+  print("@@@statusCode@@@@ ${response.statusCode}");
+  print("@@@@reasonPhrase@@@ ${response.reasonPhrase}");
+  print("@@@@reply@@@ $reply");
   //print("@@@body@@@@ ${Utf8Codec().decode(response.bodyBytes)}");
 
   if (response.statusCode == 200) {
@@ -257,18 +261,21 @@ class _MyHomePageState extends State<MyHomePage> {
               future: futureBalance,
               builder: (context, snapshot) {
                 print("!!!!!!!!!!!!!!!! ${snapshot.data}");
-                if(snapshot.hasData) {
-                  return Text("status: ${snapshot.data.status}\nbalance: ${snapshot.data.balance} ${snapshot.data.currency}");
+                if( snapshot.connectionState == ConnectionState.waiting){
+                  return  CircularProgressIndicator();//Center(child: Text('Please wait its loading...'));
+                }else
+                  if(snapshot.hasData) {
+                    return Text("status: ${snapshot.data.status}\nbalance: ${snapshot.data.balance} ${snapshot.data.currency}");
                   //return Text("Balance: ${snapshot.data.balance} ${snapshot.data
                     //  .currency} (${snapshot.data.status}) ${snapshot.data.message}");
-                }
-                if(snapshot.hasError) {
-                  print("ERROR: ##\n${snapshot.error}\n##\n^${snapshot.data}^");
-                  return Text(
+                  }
+                  if(snapshot.hasError) {
+                    print("ERROR: ##\n${snapshot.error}\n##\n^${snapshot.data}^");
+                    return Text(
                       "ERROR: ##\n${snapshot.error}\n##\n^${snapshot.data}^");
-                }
-                return CircularProgressIndicator();
-              },
+                  }
+                  return CircularProgressIndicator();
+                  },
             ),
           ],
         ),

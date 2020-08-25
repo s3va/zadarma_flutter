@@ -6,9 +6,8 @@ import 'package:encrypted_shared_preferences/encrypted_shared_preferences.dart';
 import 'package:flutter/material.dart';
 
 Future<Balance> fetchBalance(String key, String sec) async {
-
-  var bsec= utf8.encode(sec);
-  var hmac = Hmac(sha1,bsec);
+  var bsec = utf8.encode(sec);
+  var hmac = Hmac(sha1, bsec);
   var md = md5.convert(utf8.encode(""));
   var dgist = hmac.convert(utf8.encode("/v1/info/balance$md"));
   var b64dgist = base64.encode(utf8.encode(dgist.toString()));
@@ -21,7 +20,7 @@ Future<Balance> fetchBalance(String key, String sec) async {
 //      .timeout(const Duration(seconds: 15));
 //
 //    print("statusCode: ${response.statusCode}");
-    //headers: ${response.headers}");
+  //headers: ${response.headers}");
 //    var bod=Utf8Decoder().convert(response.bodyBytes);
 //    print("body: $bod");
 //    print("request: ${response.request}");
@@ -39,13 +38,14 @@ Future<Balance> fetchBalance(String key, String sec) async {
 //  var response = await dio.get("https://api.zadarma.com/v1/info/balance");
 
   HttpClient httpClient = new HttpClient();
-  HttpClientRequest request = await httpClient.getUrl(
-      Uri.parse("https://api.zadarma.com/v1/info/balance"))
+  HttpClientRequest request = await httpClient
+      .getUrl(Uri.parse("https://api.zadarma.com/v1/info/balance"))
       .timeout(const Duration(seconds: 15));
 
-  request.headers.add("Authorization", "$key:$b64dgist",preserveHeaderCase: true);
-  HttpClientResponse response = await request.close()
-      .timeout(const Duration(seconds: 15));
+  request.headers
+      .add("Authorization", "$key:$b64dgist", preserveHeaderCase: true);
+  HttpClientResponse response =
+      await request.close().timeout(const Duration(seconds: 15));
   //print("@@@@length@@@ ${response.length}");
 
   String reply = await response.transform(utf8.decoder).join();
@@ -65,10 +65,10 @@ Future<Balance> fetchBalance(String key, String sec) async {
   } else {
     //print("^^^^^^^^^^^^^^^^    ${response.request}");
     //print("tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt ${response.statusMessage}");
-   // print("Authorization: $key:$b64dgist");
+    // print("Authorization: $key:$b64dgist");
 
-      //return Balance.fromJson(jsonDecode(response.data));
-      //return Balance.fromJson(jsonDecode(Utf8Codec().decode(response.bodyBytes)));
+    //return Balance.fromJson(jsonDecode(response.data));
+    //return Balance.fromJson(jsonDecode(Utf8Codec().decode(response.bodyBytes)));
     return Balance.fromJson(jsonDecode(reply));
 
     //throw Exception('Failed to load Balance');
@@ -81,15 +81,18 @@ class Balance {
   String currency;
   String message;
 
-  Balance({this.status, this.balance=-1.01, this.currency="", this.message=""});
+  Balance(
+      {this.status,
+      this.balance = -1.01,
+      this.currency = "",
+      this.message = ""});
 
   factory Balance.fromJson(Map<String, dynamic> json) {
     return Balance(
-      status: json['status'],
-      balance: json['balance'],
-      currency: json['currency'],
-      message: json['message']
-    );
+        status: json['status'],
+        balance: 0.0 + (json['balance'] ?? 0),
+        currency: json['currency'],
+        message: json['message']);
   }
 }
 
@@ -144,12 +147,186 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  String _balance = "";
+  String _timeZone = "";
+
+  Future<String> getJSString(String method) async {
+    var bsec = utf8.encode(_mySec);
+    var hmac = Hmac(sha1, bsec);
+    var md = md5.convert(utf8.encode(""));
+    var dgist = hmac.convert(utf8.encode("$method$md"));
+    var b64dgist = base64.encode(utf8.encode(dgist.toString()));
+    print("_ Digest as bytes: ${dgist.bytes}");
+    print("_ Digest as hex string: $dgist");
+    print("_ Base64: $b64dgist");
+
+    HttpClient httpClient = new HttpClient();
+    httpClient.connectionTimeout=const Duration(seconds: 15);
+    httpClient.idleTimeout=const Duration(seconds: 15);
+    HttpClientRequest request = await httpClient
+        .getUrl(Uri.parse("https://api.zadarma.com$method"))
+        .timeout(const Duration(seconds: 15));
+
+    request.headers
+        .add("Authorization", "$_myKey:$b64dgist", preserveHeaderCase: true);
+    HttpClientResponse response =
+        await request.close().timeout(const Duration(seconds: 15));
+
+    String reply = await response.transform(utf8.decoder).join();
+    print(reply);
+    httpClient.close();
+
+    print("_ @@@headers@@@@ ${response.headers}");
+    print("_ @@@statusCode@@@@ ${response.statusCode}");
+    print("_ @@@@reasonPhrase@@@ ${response.reasonPhrase}");
+    print("_ @@@@reply@@@ $reply");
+    return reply;
+
+    var b = reply;
+    var jb = json.decode(b);
+    setState(() {
+      if (jb['status'] == 'success')
+        _balance = "Balance: ${jb['balance']} ${jb['currency']}";
+      else
+        _balance = b;
+    });
+  }
+
+  void _getBalanceTh() {
+    var bsec = utf8.encode(_mySec);
+    var hmac = Hmac(sha1, bsec);
+    var md = md5.convert(utf8.encode(""));
+    var dgist = hmac.convert(utf8.encode("/v1/info/balance$md"));
+    var b64dgist = base64.encode(utf8.encode(dgist.toString()));
+    print("_ Digest as bytes: ${dgist.bytes}");
+    print("_ Digest as hex string: $dgist");
+    print("_ Base64: $b64dgist");
+
+    HttpClient httpClient = new HttpClient();
+
+    httpClient
+        .getUrl(Uri.parse("https://api.zadarma.com/v1/info/balance"))
+        .timeout(const Duration(seconds: 15))
+        .then((request) {
+      request.headers
+          .add("Authorization", "$_myKey:$b64dgist", preserveHeaderCase: true);
+      return request
+          .close()
+          .timeout(const Duration(seconds: 15))
+          .then((response) {
+        print("_ @@@headers@@@@ ${response.headers}");
+        print("_ @@@statusCode@@@@ ${response.statusCode}");
+        print("_ @@@@reasonPhrase@@@ ${response.reasonPhrase}");
+        response.transform(utf8.decoder).join().then((v) {
+          String b = v;
+          httpClient.close();
+          print("_ @@@@reply@@@ $b");
+          var jb = json.decode(b);
+          setState(() {
+            if (jb['status'] == 'success')
+              _balance = "Balance: ${jb['balance']} ${jb['currency']}";
+            else if (jb['status'] == 'error')
+              _balance = "Error: ${jb['message']}";
+            else
+              _balance = b;
+          });
+        });
+      });
+    });
+  }
+
+
+  void _getStringJS(String method, String stringToSet) {
+    var bsec = utf8.encode(_mySec);
+    var hmac = Hmac(sha1, bsec);
+    var md = md5.convert(utf8.encode(""));
+    var dgist = hmac.convert(utf8.encode("$method$md"));
+    var b64dgist = base64.encode(utf8.encode(dgist.toString()));
+    print("_ Digest as bytes: ${dgist.bytes}");
+    print("_ Digest as hex string: $dgist");
+    print("_ Base64: $b64dgist");
+
+    HttpClient httpClient = new HttpClient();
+
+    httpClient
+        .getUrl(Uri.parse("https://api.zadarma.com$method"))
+        .timeout(const Duration(seconds: 15))
+        .then((request) {
+      request.headers
+          .add("Authorization", "$_myKey:$b64dgist", preserveHeaderCase: true);
+      return request
+          .close()
+          .timeout(const Duration(seconds: 15))
+          .then((response) {
+        print("_ @@@headers@@@@ ${response.headers}");
+        print("_ @@@statusCode@@@@ ${response.statusCode}");
+        print("_ @@@@reasonPhrase@@@ ${response.reasonPhrase}");
+        response.transform(utf8.decoder).join().then((v) {
+          String b = v;
+          httpClient.close();
+          print("_ @@@@reply@@@ $b");
+          setState(() {
+            stringToSet=b;
+          });
+          print("@@ $stringToSet @@");
+          print("@@ $_timeTxt @@");
+/*          var jb = json.decode(b);
+          setState(() {
+            if (jb['status'] == 'success')
+              _balance = "Balance: ${jb['balance']} ${jb['currency']}";
+            else if (jb['status'] == 'error')
+              _balance = "Error: ${jb['message']}";
+            else
+              _balance = b;
+          });*/
+        });
+      });
+    });
+  }
 
   final EncryptedSharedPreferences eShPr = EncryptedSharedPreferences();
   String _mySec;
+  String _myInd = '';
   String _myKey;
 
-  void _incrementCounter() {
+  void getKeyAndSec() {
+    eShPr.getString('myInd').then((ind) {
+      _myInd = ind;
+      print(
+          "++++++!!+++-----------------+++++++ myInd: $ind +++++++++++++++-------++++++");
+      eShPr.getString('mySec$_myInd').then((String s) {
+        print(
+            "++++!!+++++----------------+++++++++++ mySec$_myInd $s +++++++++++--------------++++++");
+        setState(() => _mySec = s);
+        eShPr.getString('myKey$_myInd').then((String s) {
+          print(
+              "++++!!+++++----------------+++++++++++ myKey$_myInd $s +++++++++++--------------++++++");
+          setState(() => _myKey = s);
+          _getBalanceTh();
+        });
+      });
+    });
+  }
+
+  String _tariffTxt;
+  String _sipJS;
+  String _internalJS;
+  String _timeTxt;
+
+  void _incrementCounter() async {
+    var _timeJSb= json.decode(await getJSString("/v1/info/timezone/"));
+    if(_timeJSb['status']=='success') {
+      setState(() {
+        _timeTxt = _timeJSb['datetime'] + "     "  + _timeJSb['timezone'] ;
+      });
+    }else if(_timeJSb['status']=='error'){
+      setState(() {
+        _timeTxt="Error: ${_timeJSb['message']}";
+      });
+    }
+    _tariffTxt = await getJSString("/v1/tariff/");
+    _sipJS = await getJSString("/v1/sip/");
+    _internalJS = await getJSString("/v1/pbx/internal/");
     setState(() {
       // This call to setState tells the Flutter framework that something has
       // changed in this State, which causes it to rerun the build method below
@@ -157,7 +334,7 @@ class _MyHomePageState extends State<MyHomePage> {
       // _counter without calling setState(), then the build method would not be
       // called again, and so nothing would appear to happen.
       _counter++;
-      futureBalance=fetchBalance(_myKey, _mySec);
+      //futureBalance = fetchBalance(_myKey, _mySec);
     });
   }
 
@@ -167,31 +344,27 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    /*var client = http.Client();
-
-    client.get('http://192.168.12.4/mam.csv').then((value) {
-      print("!!!!!!!!!!!!! ${value.body}");
-    }).catchError((e) {
-      print("^^^^^^^^^^^^^^^^^^^^^6 $e");
-    }).whenComplete(() => client.close());*/
-
-    eShPr.getString('mySec').then((String s) {
+    eShPr.getString('myInd').then((ind) {
+      _myInd = ind;
       print(
-          "+++++++++++----------------+++++++++++ $s +++++++++++--------------++++++");
-      if (s == '') {
-        Navigator.push(
-            context, MaterialPageRoute(builder: (context) => SettingsRoute()));
-      }
-      setState(() => _mySec = s);
-      eShPr.getString('myKey').then((String s) {
+          "+++++++++++-----------------+++++++ myInd: $ind +++++++++++++++-------++++++");
+      eShPr.getString('mySec$_myInd').then((String s) {
         print(
-            "+++++++++++----------------+++++++++++ $s +++++++++++--------------++++++");
-        if (s == '') {
-          Navigator.push(
-              context, MaterialPageRoute(builder: (context) => SettingsRoute()));
-        }
-        setState(() => _myKey = s);
-        futureBalance=fetchBalance(_myKey, _mySec);
+            "+++++++++++----------------+++++++++++ mySec$_myInd $s +++++++++++--------------++++++");
+        setState(() => _mySec = s);
+        eShPr.getString('myKey$_myInd').then((String s) {
+          print(
+              "+++++++++++----------------+++++++++++ myKey$_myInd $s +++++++++++--------------++++++");
+          setState(() => _myKey = s);
+          //futureBalance = fetchBalance(_myKey, _mySec);
+          if (_myKey == '' || _mySec == '') {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => SettingsRoute()))
+                .then((value) => getKeyAndSec());
+          } else {
+            _getBalanceTh();
+          }
+        });
       });
     });
   }
@@ -216,7 +389,8 @@ class _MyHomePageState extends State<MyHomePage> {
               child: IconButton(
                 onPressed: () {
                   Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => SettingsRoute()));
+                      MaterialPageRoute(builder: (context) => SettingsRoute()))
+                      .then((value) => getKeyAndSec());
                 },
                 icon: Icon(Icons.more_vert),
               ),
@@ -246,9 +420,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
           //mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text("Secret: $_mySec"),
-            Divider(),
-            Text("Key: $_myKey"),
+            Text("Secret $_myInd: $_mySec",
+              style: TextStyle(
+                fontFamily: 'Monospace',
+              ),
+            ),
+            Text("   Key $_myInd: $_myKey",
+              style: TextStyle(
+                fontFamily: 'Monospace',
+              ),
+            ),
             Divider(),
             Text(
               'You have pushed floating button times:',
@@ -257,26 +438,17 @@ class _MyHomePageState extends State<MyHomePage> {
               '$_counter',
               style: Theme.of(context).textTheme.headline4,
             ),
-            FutureBuilder<Balance>(
-              future: futureBalance,
-              builder: (context, snapshot) {
-                print("!!!!!!!!!!!!!!!! ${snapshot.data}");
-                if( snapshot.connectionState == ConnectionState.waiting){
-                  return  CircularProgressIndicator();//Center(child: Text('Please wait its loading...'));
-                }else
-                  if(snapshot.hasData) {
-                    return Text("status: ${snapshot.data.status}\nbalance: ${snapshot.data.balance} ${snapshot.data.currency}");
-                  //return Text("Balance: ${snapshot.data.balance} ${snapshot.data
-                    //  .currency} (${snapshot.data.status}) ${snapshot.data.message}");
-                  }
-                  if(snapshot.hasError) {
-                    print("ERROR: ##\n${snapshot.error}\n##\n^${snapshot.data}^");
-                    return Text(
-                      "ERROR: ##\n${snapshot.error}\n##\n^${snapshot.data}^");
-                  }
-                  return CircularProgressIndicator();
-                  },
-            ),
+            Divider(),
+            Text(_balance),
+            Divider(),
+            Text(_timeTxt??'time not set'),
+            Divider(),
+            Text(_tariffTxt??'time not set'),
+            Divider(),
+            Text(_sipJS??'time not set'),
+            Divider(),
+            Text(_internalJS??'time not set'),
+            Divider(),
           ],
         ),
       ),
@@ -298,14 +470,14 @@ class _SettingsRouteState extends State<SettingsRoute> {
   final EncryptedSharedPreferences encryptedSharedPreferences =
       EncryptedSharedPreferences();
 
-  final myControllerKey = TextEditingController();
-
-  final myControllerSec = TextEditingController();
+  TextEditingController myControllerKey;
+  TextEditingController myControllerSec;
+  TextEditingController myControllerInd;
 
   FocusNode mySaveFocus;
 
   String _myKey;
-
+  String _myInd;
   String _mySec;
 
   @override
@@ -313,17 +485,26 @@ class _SettingsRouteState extends State<SettingsRoute> {
     super.initState();
 
     mySaveFocus = FocusNode();
-    setState(() {
-      encryptedSharedPreferences.getString('myKey').then((String _value) {
+    encryptedSharedPreferences.getString('myInd').then((String _value) {
+      setState(() {
+        _myInd = _value;
+        myControllerInd = TextEditingController(text: _value);
+      });
+      //myControllerInd.text = _value;
+      encryptedSharedPreferences
+          .getString('myKey$_myInd')
+          .then((String _value) {
         setState(() {
           _myKey = _value;
-          myControllerKey.text = _value;
+          myControllerKey = TextEditingController(text: _value);
         });
-      });
-      encryptedSharedPreferences.getString('mySec').then((String _value) {
-        setState(() {
-          _mySec = _value;
-          myControllerSec.text = _value;
+        encryptedSharedPreferences
+            .getString('mySec$_myInd')
+            .then((String _value) {
+          setState(() {
+            _mySec = _value;
+            myControllerSec = TextEditingController(text: _value);
+          });
         });
       });
     });
@@ -334,7 +515,7 @@ class _SettingsRouteState extends State<SettingsRoute> {
     mySaveFocus.dispose();
     myControllerKey.dispose();
     myControllerSec.dispose();
-
+    myControllerInd.dispose();
     super.dispose();
   }
 
@@ -344,95 +525,150 @@ class _SettingsRouteState extends State<SettingsRoute> {
       appBar: AppBar(
         title: Text("Token Key"),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              autofocus: true,
-              textInputAction: TextInputAction.next,
-              onSubmitted: (s) {
-                setState(() {
-                  _myKey = s;
-                });
-                encryptedSharedPreferences.setString('myKey', s);
-                FocusScope.of(context).nextFocus();
-              },
-              decoration: InputDecoration(
-                icon: Icon(Icons.vpn_key),
-                hintText: "Enter Key",
-                helperText: "Enter Key",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(16.0)),
-                ),
-              ),
-              controller: myControllerKey,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              onSubmitted: (s) {
-                setState(() {
-                  _mySec = s;
-                });
-                encryptedSharedPreferences.setString('mySec', s);
-                mySaveFocus.requestFocus();
-                //mySaveFocus.;
-              },
-              decoration: InputDecoration(
-                icon: Icon(Icons.security),
-                hintText: "Enter Secret",
-                helperText: "Enter Secret",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(16.0)),
-                ),
-              ),
-              controller: myControllerSec,
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              OutlineButton(
-                onPressed: () {
-                  // Navigate back to first route when tapped.
-                  Navigator.pop(context);
-                },
-                child: Text('Cancel'),
-                focusNode: mySaveFocus,
-              ),
-              RaisedButton(
-                onPressed: () {
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                autofocus: true,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (s) {
                   setState(() {
-                    _mySec = myControllerSec.text;
-                    _myKey = myControllerKey.text;
+                    _myKey = s;
                   });
-                  encryptedSharedPreferences.setString(
-                      'myKey', myControllerKey.text);
-                  encryptedSharedPreferences.setString(
-                      'mySec', myControllerSec.text);
+                  encryptedSharedPreferences.setString('myKey$_myInd', s);
+                  FocusScope.of(context).nextFocus();
                 },
-                child: Text("Save"),
+                decoration: InputDecoration(
+                  icon: Icon(Icons.vpn_key),
+                  hintText: "Enter Key",
+                  helperText: "Enter Key",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(16.0)),
+                  ),
+                ),
+                controller: myControllerKey,
               ),
-            ],
-          ),
-          Divider(
-            color: Colors.black,
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16.0, 0.0, 0.0, 0.0),
-            child: Text(_myKey ?? ''),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16.0, 0.0, 0.0, 0.0),
-            child: Text(_mySec ?? ''),
-          ),
-          Divider(
-            color: Colors.black,
-          ),
-        ],
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                onSubmitted: (s) {
+                  setState(() {
+                    _mySec = s;
+                  });
+                  encryptedSharedPreferences.setString('mySec$_myInd', s);
+                  mySaveFocus.requestFocus();
+                  //mySaveFocus.;
+                },
+                decoration: InputDecoration(
+                  icon: Icon(Icons.security),
+                  hintText: "Enter Secret",
+                  helperText: "Enter Secret",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(16.0)),
+                  ),
+                ),
+                controller: myControllerSec,
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                OutlineButton(
+                  onPressed: () {
+                    setState(() {
+                      _myInd = myControllerInd.text;
+                      encryptedSharedPreferences
+                          .getString('myKey$_myInd')
+                          .then((String _value) {
+                        _myKey = _value;
+                        myControllerKey.text = _value;
+                        encryptedSharedPreferences
+                            .getString('mySec$_myInd')
+                            .then((String _value) {
+                          _mySec = _value;
+                          myControllerSec.text = _value;
+                        });
+                      });
+                    });
+                    // Navigate back to first route when tapped.
+                    //Navigator.pop(context);
+                  },
+                  //child: Text('Cancel'),
+                  child: Text('Load'),
+                  focusNode: mySaveFocus,
+                ),
+                /* Padding(
+                child:*/
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 0),
+                    //padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      //maxLength: 5,
+                      //autofocus: true,
+                      //textInputAction: TextInputAction.next,
+                      onSubmitted: (s) {
+                        setState(() {
+                          _myInd = s;
+                        });
+                        encryptedSharedPreferences.setString('myInd', s);
+                        FocusScope.of(context).nextFocus();
+                      },
+                      decoration: InputDecoration(
+                        icon: Icon(Icons.trending_flat),
+                        hintText: "Enter Index",
+                        //helperText: "Enter Index",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(16.0)),
+                        ),
+                      ),
+                      controller: myControllerInd,
+                    ),
+                  ),
+                ),
+                //),
+                RaisedButton(
+                  onPressed: () {
+                    setState(() {
+                      _myInd = myControllerInd.text;
+                      _mySec = myControllerSec.text;
+                      _myKey = myControllerKey.text;
+                    });
+                    encryptedSharedPreferences.setString(
+                        'myKey$_myInd', myControllerKey.text);
+                    encryptedSharedPreferences.setString(
+                        'mySec$_myInd', myControllerSec.text);
+                    encryptedSharedPreferences.setString(
+                        'myInd', myControllerInd.text);
+                  },
+                  child: Text("Save"),
+                ),
+              ],
+            ),
+            Divider(
+              color: Colors.black,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16.0, 0.0, 0.0, 0.0),
+              child: Text(_myKey ?? ''),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16.0, 0.0, 0.0, 0.0),
+              child: Text(_mySec ?? ''),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16.0, 0.0, 0.0, 0.0),
+              child: Text(_myInd ?? ''),
+            ),
+            Divider(
+              color: Colors.black,
+            ),
+          ],
+        ),
       ),
     );
   }

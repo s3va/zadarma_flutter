@@ -151,6 +151,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _timeZone = "";
 
   Future<String> getJSString(String method) async {
+    print("^^^^^^^^^^^ $method ^^^");
     var bsec = utf8.encode(_mySec);
     var hmac = Hmac(sha1, bsec);
     var md = md5.convert(utf8.encode(""));
@@ -161,8 +162,8 @@ class _MyHomePageState extends State<MyHomePage> {
     print("_ Base64: $b64dgist");
 
     HttpClient httpClient = new HttpClient();
-    httpClient.connectionTimeout=const Duration(seconds: 15);
-    httpClient.idleTimeout=const Duration(seconds: 15);
+    httpClient.connectionTimeout = const Duration(seconds: 15);
+    httpClient.idleTimeout = const Duration(seconds: 15);
     HttpClientRequest request = await httpClient
         .getUrl(Uri.parse("https://api.zadarma.com$method"))
         .timeout(const Duration(seconds: 15));
@@ -182,14 +183,14 @@ class _MyHomePageState extends State<MyHomePage> {
     print("_ @@@@reply@@@ $reply");
     return reply;
 
-    var b = reply;
-    var jb = json.decode(b);
-    setState(() {
-      if (jb['status'] == 'success')
-        _balance = "Balance: ${jb['balance']} ${jb['currency']}";
-      else
-        _balance = b;
-    });
+    // var b = reply;
+    // var jb = json.decode(b);
+    // setState(() {
+    //   if (jb['status'] == 'success')
+    //     _balance = "Balance: ${jb['balance']} ${jb['currency']}";
+    //   else
+    //     _balance = b;
+    // });
   }
 
   void _getBalanceTh() {
@@ -235,7 +236,6 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-
   void _getStringJS(String method, String stringToSet) {
     var bsec = utf8.encode(_mySec);
     var hmac = Hmac(sha1, bsec);
@@ -266,7 +266,7 @@ class _MyHomePageState extends State<MyHomePage> {
           httpClient.close();
           print("_ @@@@reply@@@ $b");
           setState(() {
-            stringToSet=b;
+            stringToSet = b;
           });
           print("@@ $stringToSet @@");
           print("@@ $_timeTxt @@");
@@ -309,24 +309,93 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   String _tariffTxt;
-  String _sipJS;
-  String _internalJS;
+  List<Text> _sipJS = [];
+  List<Text> _internalJS = [];
   String _timeTxt;
 
   void _incrementCounter() async {
-    var _timeJSb= json.decode(await getJSString("/v1/info/timezone/"));
-    if(_timeJSb['status']=='success') {
+    var _timeJSb = json.decode(await getJSString("/v1/info/timezone/"));
+    if (_timeJSb['status'] == 'success') {
       setState(() {
-        _timeTxt = _timeJSb['datetime'] + "     "  + _timeJSb['timezone'] ;
+        _timeTxt = _timeJSb['datetime'] + "     " + _timeJSb['timezone'];
       });
-    }else if(_timeJSb['status']=='error'){
+    } else if (_timeJSb['status'] == 'error') {
       setState(() {
-        _timeTxt="Error: ${_timeJSb['message']}";
+        _timeTxt = "Error: ${_timeJSb['message']}";
       });
     }
-    _tariffTxt = await getJSString("/v1/tariff/");
-    _sipJS = await getJSString("/v1/sip/");
-    _internalJS = await getJSString("/v1/pbx/internal/");
+
+    _timeJSb = json.decode(await getJSString("/v1/tariff"));
+    if (_timeJSb['status'] == 'success') {
+      String a;
+      if (_timeJSb['info']['is_active'] == 'true') {
+        a = "active";
+      } else {
+        a = "not active";
+      }
+      _tariffTxt = "Name: ${_timeJSb['info']['tariff_name']} $a";
+    } else if (_timeJSb['status'] == 'error')
+      setState(() => _tariffTxt = "Error: ${_timeJSb['message']}");
+    //_tariffTxt = await getJSString("/v1/tariff/");
+
+    _timeJSb = json.decode(await getJSString("/v1/sip/"));
+    if (_timeJSb['status'] == 'success') {
+      _sipJS.clear();
+
+      _timeJSb['sips'].forEach((sip) async {
+        var sipst =
+            json.decode(await getJSString("/v1/sip/${sip['id']}/status/"));
+        if (sipst['status'] == 'success' && sipst['is_online'] == 'true') {
+          setState(() {
+            _sipJS.add(Text(
+              sip['id'] + " " + sip['display_name'],
+              style: TextStyle(
+                backgroundColor: Colors.greenAccent,
+              ),
+            ));
+          });
+        } else {
+          setState(() {
+            _sipJS.add(Text(
+              sip['id'] + " " + sip['display_name'],
+              style: TextStyle(
+                color: Colors.redAccent,
+              ),
+              textAlign: TextAlign.left,
+            ));
+          });
+          print(
+              "&&&&&&&&&& ${_sipJS.length} &&&&&&&&&&&LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL");
+        }
+      });
+
+      print("LLLLEEEENNGGYTTTTHHH: ${_sipJS.length}");
+    } else if (_timeJSb['status'] == 'error')
+      setState(() => _sipJS.add(Text("Error: ${_timeJSb['message']}")));
+    //_sipJS = await getJSString("/v1/sip/");
+
+    _timeJSb = json.decode(await getJSString("/v1/pbx/internal/"));
+    _internalJS.clear();
+    if (_timeJSb['status'] == 'success') {
+      _internalJS.add(Text("pbx_id: ${_timeJSb['pbx_id']}"));
+      await _timeJSb['numbers'].forEach((n) async {
+        var d =
+            await json.decode(await getJSString("/v1/pbx/internal/$n/status"));
+        var c;
+        if (d['is_online'] == 'true')
+          c = Colors.lightGreenAccent;
+        else
+          c = Colors.redAccent;
+        _internalJS.add(Text(
+          "$n ${d['pbx_id']}",
+          style: TextStyle(backgroundColor: c),
+        ));
+        setState(() => _internalJS.sort((a,b) => a.data.compareTo(b.data)));
+      });
+    } else if (_timeJSb['status'] == 'error')
+      setState(() => _internalJS.add(Text("Error: ${_timeJSb['message']}")));
+    //_internalJS = await getJSString("/v1/pbx/internal/");
+
     setState(() {
       // This call to setState tells the Flutter framework that something has
       // changed in this State, which causes it to rerun the build method below
@@ -359,7 +428,7 @@ class _MyHomePageState extends State<MyHomePage> {
           //futureBalance = fetchBalance(_myKey, _mySec);
           if (_myKey == '' || _mySec == '') {
             Navigator.push(context,
-                MaterialPageRoute(builder: (context) => SettingsRoute()))
+                    MaterialPageRoute(builder: (context) => SettingsRoute()))
                 .then((value) => getKeyAndSec());
           } else {
             _getBalanceTh();
@@ -388,8 +457,10 @@ class _MyHomePageState extends State<MyHomePage> {
             child: InkWell(
               child: IconButton(
                 onPressed: () {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => SettingsRoute()))
+                  Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => SettingsRoute()))
                       .then((value) => getKeyAndSec());
                 },
                 icon: Icon(Icons.more_vert),
@@ -420,12 +491,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
           //mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text("Secret $_myInd: $_mySec",
+            Text(
+              "Secret $_myInd: $_mySec",
               style: TextStyle(
                 fontFamily: 'Monospace',
               ),
             ),
-            Text("   Key $_myInd: $_myKey",
+            Text(
+              "   Key $_myInd: $_myKey",
               style: TextStyle(
                 fontFamily: 'Monospace',
               ),
@@ -441,13 +514,19 @@ class _MyHomePageState extends State<MyHomePage> {
             Divider(),
             Text(_balance),
             Divider(),
-            Text(_timeTxt??'time not set'),
+            Text(_timeTxt ?? 'time not set'),
             Divider(),
-            Text(_tariffTxt??'time not set'),
+            Text(_tariffTxt ?? 'time not set'),
             Divider(),
-            Text(_sipJS??'time not set'),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _sipJS,
+            ),
             Divider(),
-            Text(_internalJS??'time not set'),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _internalJS,
+            ),
             Divider(),
           ],
         ),

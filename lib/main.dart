@@ -342,34 +342,20 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_timeJSb['status'] == 'success') {
       _sipJS.clear();
 
-      _timeJSb['sips'].forEach((sip) async {
-        var sipst =
-            json.decode(await getJSString("/v1/sip/${sip['id']}/status/"));
-        if (sipst['status'] == 'success' && sipst['is_online'] == 'true') {
-          setState(() {
-            _sipJS.add(Text(
-              sip['id'] + " " + sip['display_name'],
-              style: TextStyle(
-                backgroundColor: Colors.greenAccent,
-              ),
-            ));
-          });
-        } else {
-          setState(() {
-            _sipJS.add(Text(
-              sip['id'] + " " + sip['display_name'],
-              style: TextStyle(
-                color: Colors.redAccent,
-              ),
-              textAlign: TextAlign.left,
-            ));
-          });
-          print(
-              "&&&&&&&&&& ${_sipJS.length} &&&&&&&&&&&LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL");
-        }
+      await Future.forEach(_timeJSb['sips'], (sip) async {
+        var sipst = json.decode(await getJSString("/v1/sip/${sip['id']}/status/"));
+        Color c;
+        if (sipst['status'] == 'success' && sipst['is_online'] == 'true')
+          c = Colors.greenAccent;
+        else
+          c = Colors.redAccent;
+        _sipJS.add(
+            Text(sip['id'] + " " + sip['display_name'],
+              style: TextStyle(backgroundColor: c,),
+            )
+        );
       });
 
-      print("LLLLEEEENNGGYTTTTHHH: ${_sipJS.length}");
     } else if (_timeJSb['status'] == 'error')
       setState(() => _sipJS.add(Text("Error: ${_timeJSb['message']}")));
     //_sipJS = await getJSString("/v1/sip/");
@@ -378,7 +364,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _internalJS.clear();
     if (_timeJSb['status'] == 'success') {
       _internalJS.add(Text("pbx_id: ${_timeJSb['pbx_id']}"));
-      await _timeJSb['numbers'].forEach((n) async {
+      await Future.forEach(_timeJSb['numbers'], (n)  async {
         var d =
             await json.decode(await getJSString("/v1/pbx/internal/$n/status"));
         var c;
@@ -386,12 +372,13 @@ class _MyHomePageState extends State<MyHomePage> {
           c = Colors.lightGreenAccent;
         else
           c = Colors.redAccent;
+
         _internalJS.add(Text(
           "$n ${d['pbx_id']}",
           style: TextStyle(backgroundColor: c),
         ));
-        setState(() => _internalJS.sort((a,b) => a.data.compareTo(b.data)));
       });
+      //_internalJS.sort((a,b) => a.data.compareTo(b.data));
     } else if (_timeJSb['status'] == 'error')
       setState(() => _internalJS.add(Text("Error: ${_timeJSb['message']}")));
     //_internalJS = await getJSString("/v1/pbx/internal/");

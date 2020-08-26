@@ -314,6 +314,21 @@ class _MyHomePageState extends State<MyHomePage> {
   String _timeTxt;
 
   void _incrementCounter() async {
+
+    //_internalJS = await getJSString("/v1/pbx/internal/");
+
+    setState(() {
+      // This call to setState tells the Flutter framework that something has
+      // changed in this State, which causes it to rerun the build method below
+      // so that the display can reflect the updated values. If we changed
+      // _counter without calling setState(), then the build method would not be
+      // called again, and so nothing would appear to happen.
+      _counter++;
+      //futureBalance = fetchBalance(_myKey, _mySec);
+    });
+  }
+
+  Future _fetchRefresh() async {
     var _timeJSb = json.decode(await getJSString("/v1/info/timezone/"));
     if (_timeJSb['status'] == 'success') {
       setState(() {
@@ -354,8 +369,8 @@ class _MyHomePageState extends State<MyHomePage> {
               style: TextStyle(backgroundColor: c,),
             )
         );
+        setState(() {});
       });
-
     } else if (_timeJSb['status'] == 'error')
       setState(() => _sipJS.add(Text("Error: ${_timeJSb['message']}")));
     //_sipJS = await getJSString("/v1/sip/");
@@ -377,21 +392,13 @@ class _MyHomePageState extends State<MyHomePage> {
           "$n ${d['pbx_id']}",
           style: TextStyle(backgroundColor: c),
         ));
+        setState(() {});
       });
       //_internalJS.sort((a,b) => a.data.compareTo(b.data));
     } else if (_timeJSb['status'] == 'error')
       setState(() => _internalJS.add(Text("Error: ${_timeJSb['message']}")));
     //_internalJS = await getJSString("/v1/pbx/internal/");
-
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-      //futureBalance = fetchBalance(_myKey, _mySec);
-    });
+    setState(() {});
   }
 
   Future<Balance> futureBalance;
@@ -459,63 +466,66 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
-        child: ListView(
-          padding: EdgeInsets.all(16.0),
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
+        child: RefreshIndicator(
+          onRefresh: _fetchRefresh,
+          child: ListView(
+            padding: EdgeInsets.all(16.0),
+            // Column is also a layout widget. It takes a list of children and
+            // arranges them vertically. By default, it sizes itself to fit its
+            // children horizontally, and tries to be as tall as its parent.
+            //
+            // Invoke "debug painting" (press "p" in the console, choose the
+            // "Toggle Debug Paint" action from the Flutter Inspector in Android
+            // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
+            // to see the wireframe for each widget.
+            //
+            // Column has various properties to control how it sizes itself and
+            // how it positions its children. Here we use mainAxisAlignment to
+            // center the children vertically; the main axis here is the vertical
+            // axis because Columns are vertical (the cross axis would be
+            // horizontal).
 
-          //mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              "Secret $_myInd: $_mySec",
-              style: TextStyle(
-                fontFamily: 'Monospace',
+            //mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text(
+                "Secret $_myInd: $_mySec",
+                style: TextStyle(
+                  fontFamily: 'Monospace',
+                ),
               ),
-            ),
-            Text(
-              "   Key $_myInd: $_myKey",
-              style: TextStyle(
-                fontFamily: 'Monospace',
+              Text(
+                "   Key $_myInd: $_myKey",
+                style: TextStyle(
+                  fontFamily: 'Monospace',
+                ),
               ),
-            ),
-            Divider(),
-            Text(
-              'You have pushed floating button times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-            Divider(),
-            Text(_balance),
-            Divider(),
-            Text(_timeTxt ?? 'time not set'),
-            Divider(),
-            Text(_tariffTxt ?? 'time not set'),
-            Divider(),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: _sipJS,
-            ),
-            Divider(),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: _internalJS,
-            ),
-            Divider(),
-          ],
+              Divider(),
+              Text(
+                'You have pushed floating button times:',
+              ),
+              Text(
+                '$_counter',
+                style: Theme.of(context).textTheme.headline4,
+              ),
+              Divider(),
+              Text(_balance),
+              Divider(),
+              Text(_timeTxt ?? 'time not set'),
+              Divider(),
+              Text(_tariffTxt ?? 'time not set'),
+              Divider(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _sipJS,
+              ),
+              Divider(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _internalJS,
+              ),
+              Divider(),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(

@@ -3,8 +3,9 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:encrypted_shared_preferences/encrypted_shared_preferences.dart';
-import 'package:flutter/cupertino.dart';
+//import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
 import 'package:toast/toast.dart';
 
@@ -177,6 +178,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final GlobalKey<RefreshIndicatorState> _refKey = GlobalKey<RefreshIndicatorState>();
   DateTime _stopDate = DateTime.now();
   DateTime _startDate = DateTime(DateTime.now().year, DateTime.now().month, 1);
 
@@ -304,9 +306,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   final EncryptedSharedPreferences eShPr = EncryptedSharedPreferences();
-  String _mySec;
+  String _mySec = '';
   String _myInd = '';
-  String _myKey;
+  String _myKey = '';
 
   void getKeyAndSec() {
     eShPr.getString('myInd').then((ind) {
@@ -319,7 +321,10 @@ class _MyHomePageState extends State<MyHomePage> {
           print("++++!!+++++----------------+++++++++++ myKey$_myInd $s +++++++++++--------------++++++");
           setState(() => _myKey = s);
           //_getBalanceTh();
-          _fetchRefresh();
+          if(_mySec!=''&&_myKey!='')
+            _fetchRefresh();
+          else
+            print("_mySec!=''&&_myKey!=''");
         });
       });
     });
@@ -345,6 +350,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future _fetchRefresh() async {
+    if(_mySec==''||_myKey=='') {
+      print("_mySec==''||_myKey==''");
+      return;
+    }
     var _timeJSb = json.decode(await getJSString("/v1/info/balance/"));
     if (_timeJSb['status'] == 'success')
       setState(() => _balance = "Balance: ${_timeJSb['balance']} ${_timeJSb['currency']}");
@@ -424,7 +433,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-
+    SchedulerBinding.instance.addPostFrameCallback((_){  _refKey.currentState?.show(); } );
     _startDateStr = "${DateFormat('yyyy-MM-dd').format(_startDate)}";
     _stopDateStr = "${DateFormat('yyyy-MM-dd').format(_stopDate)}";
 
@@ -440,8 +449,8 @@ class _MyHomePageState extends State<MyHomePage> {
           //futureBalance = fetchBalance(_myKey, _mySec);
           if (_myKey == '' || _mySec == '') {
             Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsRoute())).then((value) => getKeyAndSec());
-          } else
-            _fetchRefresh();
+          } //else
+            //_fetchRefresh();
           //{
           //_getBalanceTh();
           //}
@@ -449,6 +458,7 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -481,6 +491,7 @@ class _MyHomePageState extends State<MyHomePage> {
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
         child: RefreshIndicator(
+          key: _refKey,
           onRefresh: _fetchRefresh,
           child: ListView(
             padding: EdgeInsets.all(16.0),
@@ -812,7 +823,7 @@ class CallStatistics extends StatefulWidget {
 }
 
 class _CallStatisticsState extends State<CallStatistics> {
-  String _head;
+  String _head = "";
   var _callsList;
 
   @override
@@ -834,71 +845,117 @@ class _CallStatisticsState extends State<CallStatistics> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      //    bottomSheet: Text(_head??""),
       appBar: AppBar(
         title: Text("List of Calls"),
       ),
-      body:
-      Container(
-
-        child: ListView.builder( itemCount: _callsList==null ? 0 : _callsList.length,
-            itemBuilder: (BuildContext context, int i) {
-          Color _dispC;
-          switch(_callsList[i]['disposition']) {
-            case 'answered': { _dispC=Colors.lightGreenAccent; }
-            break;
-            case 'no answer': { _dispC=Colors.purpleAccent; }
-            break;
-            case 'failed': { _dispC=Colors.redAccent; }
-            break;
-            default: { _dispC=Colors.white;}
-            break;
-          }
-          return Container(
-              //height: 150,
-              padding: EdgeInsets.fromLTRB(4, 4, 4, 4),
-              color: Colors.grey,
-              child: Column(
-                children: [
-                  InkWell(
-                    onTap: () => showDialog(context: context,
-                        builder: (BuildContext context) => SimpleDialog(
-                          title: Text("dial title"),
-                          children: [
-                            Text(JsonEncoder.withIndent("        ").convert(_callsList[i])),
-                          ],
-                        )
-                    ),
-                    //Toast.show(_callsList[i].toString(),context,duration: Toast.LENGTH_LONG),
-                    child: Row(
-                      children: [
-                        Text("${_callsList[i]['callstart']}",style: TextStyle(fontSize: 12, backgroundColor: Colors.white70),),
-                        SizedBox(width: 10,),
-                        Text("(${_callsList[i]['sip']}) ${_callsList[i]['from']}",style: TextStyle(fontSize: 12, backgroundColor: Colors.white70),),
-                        SizedBox(width: 10,),
-                        Text("${_callsList[i]['to']}",style: TextStyle(fontSize: 12, backgroundColor: _dispC),),
-                      ],
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Text("${_callsList[i]['description']}"),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Text("${_callsList[i]['billcost']} ${_callsList[i]['currency']}",
-                        style: TextStyle(
-                          backgroundColor: _callsList[i]['billcost']==0?Colors.grey:Colors.redAccent,
-                        ),
+      body: Container(
+        child: Column(
+          children: [
+            Dismissible(
+              key: UniqueKey(),
+              child: Text(_head),
+            ),
+            Expanded(
+              child: ListView.separated(
+                separatorBuilder: (BuildContext context, int index) => Divider(height: 2,thickness: 2, color: Colors.orange,),
+                  itemCount: _callsList == null ? 0 : _callsList.length,
+                  itemBuilder: (BuildContext context, int i) {
+                    Color _dispC;
+                    switch (_callsList[i]['disposition']) {
+                      case 'answered':
+                        {
+                          _dispC = Colors.lightGreenAccent;
+                        }
+                        break;
+                      case 'no answer':
+                        {
+                          _dispC = Colors.purpleAccent;
+                        }
+                        break;
+                      case 'failed':
+                        {
+                          _dispC = Colors.redAccent;
+                        }
+                        break;
+                      case 'busy':
+                        {
+                          _dispC = Colors.pinkAccent;
+                        }
+                        break;
+                      default:
+                        {
+                          _dispC = Colors.white;
+                        }
+                        break;
+                    }
+                    return Container(
+                      //height: 150,
+                      padding: EdgeInsets.fromLTRB(4, 4, 4, 4),
+                      color: Colors.grey,
+                      child: Column(
+                        children: [
+                          InkWell(
+                            onTap: () => showDialog(
+                                context: context,
+                                builder: (BuildContext context) => SimpleDialog(
+                                      title: Text("dial title"),
+                                      children: [
+                                        Text(JsonEncoder.withIndent("        ").convert(_callsList[i])),
+                                      ],
+                                    )),
+                            //Toast.show(_callsList[i].toString(),context,duration: Toast.LENGTH_LONG),
+                            child: Row(
+                              children: [
+                                Text(
+                                  "${_callsList[i]['callstart']}",
+                                  style: TextStyle(fontSize: 12, backgroundColor: Colors.white70),
+                                ),
+                                SizedBox(
+                                  width: 10,
+                                ),
+                                Text(
+                                  "(${_callsList[i]['sip']}) ${_callsList[i]['from']}",
+                                  style: TextStyle(fontSize: 12, backgroundColor: Colors.white70),
+                                ),
+                                SizedBox(
+                                  width: 10,
+                                ),
+                                Text(
+                                  "${_callsList[i]['to']}",
+                                  style: TextStyle(fontSize: 12, backgroundColor: _dispC),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Text("${_callsList[i]['description']}"),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                "${NumberFormat("###############0.00########").format(_callsList[i]['billcost'])} ${_callsList[i]['currency']}",
+                                style: TextStyle(
+                                  backgroundColor: _callsList[i]['billcost'] == 0 ? Colors.grey : Colors.redAccent,
+                                ),
+                              ),
+                              SizedBox(
+                                width: 10,
+                              ),
+                              Text(
+                                "${_callsList[i]['billseconds'] ~/ 60}:${NumberFormat("00").format(_callsList[i]['billseconds'] % 60)} (${_callsList[i]['cost']} per minutes)",
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 10,),
-                      Text("${_callsList[i]['billseconds']~/60}:${_callsList[i]['billseconds']%60} (${_callsList[i]['cost']} per minutes)",),
-                    ],
-                  ),
-                ],
-              ),
-            );
-        }),
+                    );
+                  }),
+            ),
+          ],
+        ),
       ),
     );
   }

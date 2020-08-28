@@ -2,52 +2,17 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:crypto_coins_rates/pbxlist.dart';
 import 'package:encrypted_shared_preferences/encrypted_shared_preferences.dart';
+
 //import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
-import 'package:toast/toast.dart';
 
-Future<String> getJSStringParam(String method, String param) async {
-  print("^^^^^^^^^^^ $method ^^^ $param ^^^^^^^");
-  final EncryptedSharedPreferences eShPr = EncryptedSharedPreferences();
+import 'fetchbalance.dart';
+//import 'package:toast/toast.dart';
 
-  String _myInd = await eShPr.getString('myInd');
-  print("++++++!!+++------+++++++ myInd: $_myInd ++++++++++++-----++++++");
-  String _mySec = await eShPr.getString('mySec$_myInd');
-  print("++++!!+++++------+++++++ mySec$_myInd $_mySec +++++++++++-----++++++");
-  String _myKey = await eShPr.getString('myKey$_myInd');
-  print("++++!!+++++----+++++++++ myKey$_myInd $_myKey +++++++++++-----++++++");
-
-  var bsec = utf8.encode(_mySec);
-  var hmac = Hmac(sha1, bsec);
-  var md = md5.convert(utf8.encode("$param"));
-  var dgist = hmac.convert(utf8.encode("$method$param$md"));
-  var b64dgist = base64.encode(utf8.encode(dgist.toString()));
-  print("_ Digest as bytes: ${dgist.bytes}");
-  print("_ Digest as hex string: $dgist");
-  print("_ Base64: $b64dgist");
-
-  HttpClient httpClient = new HttpClient();
-  httpClient.connectionTimeout = const Duration(seconds: 15);
-  httpClient.idleTimeout = const Duration(seconds: 15);
-  print("https://api.zadarma.com$method?$param");
-  HttpClientRequest request = await httpClient.getUrl(Uri.parse("https://api.zadarma.com$method?$param")).timeout(const Duration(seconds: 15));
-
-  request.headers.add("Authorization", "$_myKey:$b64dgist", preserveHeaderCase: true);
-  HttpClientResponse response = await request.close().timeout(const Duration(seconds: 15));
-
-  String reply = await response.transform(utf8.decoder).join();
-  print(reply);
-  httpClient.close();
-
-  print("_ @@@headers@@@@ ${response.headers}");
-  print("_ @@@statusCode@@@@ ${response.statusCode}");
-  print("_ @@@@reasonPhrase@@@ ${response.reasonPhrase}");
-  print("_ @@@@reply@@@ $reply");
-  return reply;
-}
 
 Future<Balance> fetchBalance(String key, String sec) async {
   var bsec = utf8.encode(sec);
@@ -321,7 +286,7 @@ class _MyHomePageState extends State<MyHomePage> {
           print("++++!!+++++----------------+++++++++++ myKey$_myInd $s +++++++++++--------------++++++");
           setState(() => _myKey = s);
           //_getBalanceTh();
-          if(_mySec!=''&&_myKey!='')
+          if (_mySec != '' && _myKey != '')
             _fetchRefresh();
           else
             print("_mySec!=''&&_myKey!=''");
@@ -350,10 +315,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future _fetchRefresh() async {
-    if(_mySec==''||_myKey=='') {
+    if (_mySec == '' || _myKey == '') {
       print("_mySec==''||_myKey==''");
       return;
     }
+
     var _timeJSb = json.decode(await getJSString("/v1/info/balance/"));
     if (_timeJSb['status'] == 'success')
       setState(() => _balance = "Balance: ${_timeJSb['balance']} ${_timeJSb['currency']}");
@@ -408,6 +374,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _internalJS.clear();
     if (_timeJSb['status'] == 'success') {
       _internalJS.add(Text("pbx_id: ${_timeJSb['pbx_id']}"));
+      setState(() {});
       await Future.forEach(_timeJSb['numbers'], (n) async {
         var d = await json.decode(await getJSString("/v1/pbx/internal/$n/status"));
         var c;
@@ -425,6 +392,7 @@ class _MyHomePageState extends State<MyHomePage> {
       //_internalJS.sort((a,b) => a.data.compareTo(b.data));
     } else if (_timeJSb['status'] == 'error') setState(() => _internalJS.add(Text("Error: ${_timeJSb['message']}")));
     //_internalJS = await getJSString("/v1/pbx/internal/");
+
     setState(() {});
   }
 
@@ -433,7 +401,9 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    SchedulerBinding.instance.addPostFrameCallback((_){  _refKey.currentState?.show(); } );
+    //SchedulerBinding.instance.addPostFrameCallback((_) {
+    //  _refKey.currentState?.show();
+    //});
     _startDateStr = "${DateFormat('yyyy-MM-dd').format(_startDate)}";
     _stopDateStr = "${DateFormat('yyyy-MM-dd').format(_stopDate)}";
 
@@ -450,7 +420,7 @@ class _MyHomePageState extends State<MyHomePage> {
           if (_myKey == '' || _mySec == '') {
             Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsRoute())).then((value) => getKeyAndSec());
           } //else
-            //_fetchRefresh();
+          //_fetchRefresh();
           //{
           //_getBalanceTh();
           //}
@@ -458,7 +428,6 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -598,6 +567,13 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Text("Till: " + _stopDateStr),
                   ),
                 ],
+              ),
+              RaisedButton(
+                child: Text("PBX Calls List"),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(
+                  builder: (context) => PbxCallsList(text: "end=$_stopDateStr+23%3A59%3A59&start=$_startDateStr+00%3A00%3A00",
+                  )
+                )),
               ),
             ],
           ),
@@ -858,7 +834,11 @@ class _CallStatisticsState extends State<CallStatistics> {
             ),
             Expanded(
               child: ListView.separated(
-                separatorBuilder: (BuildContext context, int index) => Divider(height: 2,thickness: 2, color: Colors.orange,),
+                  separatorBuilder: (BuildContext context, int index) => Divider(
+                        height: 2,
+                        thickness: 2,
+                        color: Colors.orange,
+                      ),
                   itemCount: _callsList == null ? 0 : _callsList.length,
                   itemBuilder: (BuildContext context, int i) {
                     Color _dispC;

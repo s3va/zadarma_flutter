@@ -7,7 +7,7 @@ import 'package:encrypted_shared_preferences/encrypted_shared_preferences.dart';
 
 //import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
+//import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
 
 import 'fetchbalance.dart';
@@ -152,7 +152,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   int _counter = 0;
   String _balance = "";
-  String _timeZone = "";
 
   Future<String> getJSString(String method) async {
     print("^^^^^^^^^^^ $method ^^^");
@@ -823,7 +822,7 @@ class _CallStatisticsState extends State<CallStatistics> {
     return Scaffold(
       //    bottomSheet: Text(_head??""),
       appBar: AppBar(
-        title: Text("List of Calls"),
+        title: Text("List of Calls (${_callsList == null ? 0 : _callsList.length})"),
       ),
       body: Container(
         child: Column(

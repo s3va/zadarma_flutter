@@ -1,4 +1,4 @@
-# crypto_coins_rates
+# zadarma_api_flutter
 
 A new Flutter application.
 

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:crypto_coins_rates/pbxlist.dart';
+import 'package:zadarma_api_flutter/pbxlist.dart';
 import 'package:encrypted_shared_preferences/encrypted_shared_preferences.dart';
 
 //import 'package:flutter/cupertino.dart';
@@ -102,7 +102,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Zadarma Api',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -119,7 +119,7 @@ class MyApp extends StatelessWidget {
         // closer together (more dense) than on mobile platforms.
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(title: 'Zadarma Api Flutter App'),
     );
   }
 }
@@ -888,21 +888,27 @@ class _CallStatisticsState extends State<CallStatistics> {
                               children: [
                                 Text(
                                   "${_callsList[i]['callstart']}",
-                                  style: TextStyle(fontSize: 12, backgroundColor: Colors.white70),
+                                  style: TextStyle(
+                                    //fontSize: 12,
+                                    backgroundColor: Colors.white70,),
                                 ),
                                 SizedBox(
                                   width: 10,
                                 ),
                                 Text(
                                   "(${_callsList[i]['sip']}) ${_callsList[i]['from']}",
-                                  style: TextStyle(fontSize: 12, backgroundColor: Colors.white70),
+                                  style: TextStyle(
+                                    //fontSize: 12,
+                                    backgroundColor: Colors.white70,),
                                 ),
                                 SizedBox(
                                   width: 10,
                                 ),
                                 Text(
                                   "${_callsList[i]['to']}",
-                                  style: TextStyle(fontSize: 12, backgroundColor: _dispC),
+                                  style: TextStyle(
+                                    //fontSize: 12,
+                                    backgroundColor: _dispC,),
                                 ),
                               ],
                             ),

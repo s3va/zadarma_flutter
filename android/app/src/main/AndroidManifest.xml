@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.crypto_coins_rates">
+    package="tk.kvakva.zadarma_api_flutter"
+    android:installLocation="preferExternal"
+    >
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- io.flutter.app.FlutterApplication is an android.app.Application that
          calls FlutterMain.startInitialization(this); in its onCreate method.
@@ -8,7 +10,7 @@
          FlutterApplication and put your custom class here. -->
     <application
         android:name="io.flutter.app.FlutterApplication"
-        android:label="crypto_coins_rates"
+        android:label="Zadarma Api Flutter"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

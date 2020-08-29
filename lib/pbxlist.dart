@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:zadarma_api_flutter/play_sound_mp3.dart';
 
 import 'fetchbalance.dart';
 
@@ -40,7 +41,7 @@ class _PbxCallsListState extends State<PbxCallsList> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("List of PBX Calls (${ _callsList == null ? 0 : _callsList.length})"),
+        title: Text("List of PBX Calls (${_callsList == null ? 0 : _callsList.length})"),
       ),
       body: Container(
         child: Column(
@@ -50,75 +51,76 @@ class _PbxCallsListState extends State<PbxCallsList> {
               child: Text(_head),
             ),
             Expanded(
-                child: ListView.separated(
-              itemCount: _callsList == null ? 0 : _callsList.length,
-              itemBuilder: (BuildContext context, int i) {
-                Color _dispC;
-                Color _isRecorded;
-                switch (_callsList[i]['is_recorded']) {
-                  case 'true':
-                    {
-                      _isRecorded = Colors.greenAccent;
-                    }
-                    break;
-                  default:
-                    {
-                      _isRecorded = Colors.white;
-                    }
-                    break;
-                }
-                switch (_callsList[i]['disposition']) {
-                  case 'answered':
-                    {
-                      _dispC = Colors.lightGreenAccent;
-                    }
-                    break;
-                  case 'no answer':
-                    {
-                      _dispC = Colors.purpleAccent;
-                    }
-                    break;
-                  case 'failed':
-                    {
-                      _dispC = Colors.redAccent;
-                    }
-                    break;
-                  case 'busy':
-                    {
-                      _dispC = Colors.pinkAccent;
-                    }
-                    break;
-                  default:
-                    {
-                      _dispC = Colors.white;
-                    }
-                    break;
-                }
-                return Container(
-                  padding: EdgeInsets.fromLTRB(4, 4, 4, 4),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(_callsList[i]['callstart']),
-                          //SizedBox(width: 10,),
-                          _callsList[i]['is_recorded'] == 'true'
-                              ? InkWell(
-                                  child: Text("${_callsList[i]['seconds'] ~/ 60}:${NumberFormat("00").format(_callsList[i]['seconds'] % 60)}",
-                                    //_callsList[i]['seconds'].toString(),
-                                    style: TextStyle(backgroundColor: _isRecorded),
-                                  ),
-                                  onTap: () async {
-                                    String _jsstr = await getJSStringParam("/v1/pbx/record/request/", "call_id=${_callsList[i]['call_id']}");
-                                    String _mp3Url = json.decode(_jsstr)['link'];
-                                    if (await canLaunch(_mp3Url)) {
-                                      await launch(_mp3Url);
-                                    } else {
-                                      throw 'Could not launch $_mp3Url';
-                                    }
-                                    return;
-                                    /*return showDialog(
+              child: ListView.separated(
+                itemCount: _callsList == null ? 0 : _callsList.length,
+                itemBuilder: (BuildContext context, int i) {
+                  Color _dispC;
+                  Color _isRecorded;
+                  switch (_callsList[i]['is_recorded']) {
+                    case 'true':
+                      {
+                        _isRecorded = Colors.greenAccent;
+                      }
+                      break;
+                    default:
+                      {
+                        _isRecorded = Colors.white;
+                      }
+                      break;
+                  }
+                  switch (_callsList[i]['disposition']) {
+                    case 'answered':
+                      {
+                        _dispC = Colors.lightGreenAccent;
+                      }
+                      break;
+                    case 'no answer':
+                      {
+                        _dispC = Colors.purpleAccent;
+                      }
+                      break;
+                    case 'failed':
+                      {
+                        _dispC = Colors.redAccent;
+                      }
+                      break;
+                    case 'busy':
+                      {
+                        _dispC = Colors.pinkAccent;
+                      }
+                      break;
+                    default:
+                      {
+                        _dispC = Colors.white;
+                      }
+                      break;
+                  }
+                  return Container(
+                    padding: EdgeInsets.fromLTRB(4, 4, 4, 4),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(_callsList[i]['callstart']),
+                            //SizedBox(width: 10,),
+                            _callsList[i]['is_recorded'] == 'true'
+                                ? InkWell(
+                                    child: Text(
+                                      "${_callsList[i]['seconds'] ~/ 60}:${NumberFormat("00").format(_callsList[i]['seconds'] % 60)}",
+                                      //_callsList[i]['seconds'].toString(),
+                                      style: TextStyle(backgroundColor: _isRecorded),
+                                    ),
+                                    onTap: () async {
+                                      String _jsstr = await getJSStringParam("/v1/pbx/record/request/", "call_id=${_callsList[i]['call_id']}");
+                                      String _mp3Url = json.decode(_jsstr)['link'];
+                                      if (await canLaunch(_mp3Url)) {
+                                        await launch(_mp3Url);
+                                      } else {
+                                        throw 'Could not launch $_mp3Url';
+                                      }
+                                      return;
+                                      /*return showDialog(
                                       context: context,
                                       builder: (BuildContext context) {
                                         return SimpleDialog(children: [
@@ -129,52 +131,81 @@ class _PbxCallsListState extends State<PbxCallsList> {
                                         ]);
                                       },
                                     );*/
-                                  })
-                              : Text("${_callsList[i]['seconds'] ~/ 60}:${NumberFormat("00").format(_callsList[i]['seconds'] % 60)}",
-                                  style: TextStyle(backgroundColor: _isRecorded),
-                                ),
-                        ],
-                      ),
-                      InkWell(
-                        onTap: () => showDialog(
-                            context: context,
-                            builder: (BuildContext context) => SimpleDialog(
-                              //title: Text("dial title"),
-                              children: [
-                                Text(JsonEncoder.withIndent("        ").convert(_callsList[i])),
-                              ],
-                            )),
-                        child: Row(
-                          children: [
-                            Text("From: " + _callsList[i]['sip']),
-                            SizedBox(
-                              width: 10,
-                            ),
-                            _callsList[i]['sip']!=_callsList[i]['clid']?Text("(" + _callsList[i]['clid'] + ")"):SizedBox(),
+                                    })
+                                : Text(
+                                    "${_callsList[i]['seconds'] ~/ 60}:${NumberFormat("00").format(_callsList[i]['seconds'] % 60)}",
+                                    style: TextStyle(backgroundColor: _isRecorded),
+                                  ),
                           ],
                         ),
-                      ),
-                      Row(
-                        children: [
-                          Text("To:"),
-                          SizedBox(width: 20,),
-                          Text(
-                            _callsList[i]['destination'].toString(),
-                            style: TextStyle(backgroundColor: _dispC),
+                        InkWell(
+                          onTap: () => showDialog(
+                              context: context,
+                              builder: (BuildContext context) => SimpleDialog(
+                                    //title: Text("dial title"),
+                                    children: [
+                                      Text(JsonEncoder.withIndent("        ").convert(_callsList[i])),
+                                    ],
+                                  )),
+                          child: Row(
+                            children: [
+                              Text("From: " + _callsList[i]['sip']),
+                              SizedBox(
+                                width: 10,
+                              ),
+                              _callsList[i]['sip'] != _callsList[i]['clid'] ? Text("(" + _callsList[i]['clid'] + ")") : SizedBox(),
+                            ],
                           ),
-                        ],
-                      ),
-                      //Text(JsonEncoder.withIndent("       ").convert(_callsList[i])),
-                    ],
-                  ),
-                );
-              },
-              separatorBuilder: (BuildContext context, int index) => Divider(
-                height: 2,
-                thickness: 2,
-                color: Colors.orange,
+                        ),
+                        Row(
+                          children: [
+                            Text("To:"),
+                            SizedBox(
+                              width: 20,
+                            ),
+                            InkWell(
+                              onTap: () async {
+                                String _jsstr = await getJSStringParam("/v1/pbx/record/request/", "call_id=${_callsList[i]['call_id']}");
+                                if(json.decode(_jsstr)['status']=='error'){
+                                  showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) => SimpleDialog(
+                                        //title: Text("dial title"),
+                                        children: [
+                                          Text(JsonEncoder.withIndent("        ").convert(json.decode(_jsstr))),
+                                        ],
+                                      ));
+                                }else if(json.decode(_jsstr)['status']=='success') {
+                                  String _mp3Url = json.decode(_jsstr)['link'];
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            PlaySoundMp(
+                                              mp3url: _mp3Url,
+                                            )),
+                                  );
+                                }
+                              },
+                              child: Text(
+                                _callsList[i]['destination'].toString(),
+                                style: TextStyle(backgroundColor: _dispC),
+                              ),
+                            ),
+                          ],
+                        ),
+                        //Text(JsonEncoder.withIndent("       ").convert(_callsList[i])),
+                      ],
+                    ),
+                  );
+                },
+                separatorBuilder: (BuildContext context, int index) => Divider(
+                  height: 2,
+                  thickness: 2,
+                  color: Colors.orange,
+                ),
               ),
-            )),
+            ),
           ],
         ),
       ),

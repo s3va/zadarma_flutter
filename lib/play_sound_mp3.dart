@@ -57,101 +57,98 @@ class _PlaySoundMpState extends State<PlaySoundMp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Playing mp3',
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text(
-              "${widget.mp3url.length > 35 ? widget.mp3url.substring(widget.mp3url.length - 34, widget.mp3url.length - 4) : 0}\n--------------------------------dd-hhmmss\n$_mp3duration\n$_mp3position"),
-          toolbarHeight: 100,
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Slider.adaptive(
-                  value: _sliderPosition,
-                  min: 0,
-                  max: 100,
-                  label: _sliderPosition.round().toString(),
-                  divisions: 100,
-                  onChanged: (v) {
-                    setState(() {
-                      _sliderPosition = v;
-                      audioPlayer.seek(Duration(milliseconds: _mp3duration.inMilliseconds ~/ 100 * v.round()));
-                    });
-                  }),
-              Container(
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        RaisedButton(
-                          onPressed: () {
-                            if (playerState == AudioPlayerState.PLAYING) {
-                              audioPlayer.pause(); //.then((value) {
-                              //setState(() { playerState=false; });
-                              //},
-                              //onError: (e,s) {
-                              //print( "pause error: ${e.toString()}\n$s");
-                              //return  audioPlayer.stop() ;
-                              //},);//pauseAudio();
-                            } else if (playerState == AudioPlayerState.PAUSED) {
-                              audioPlayer.resume(); //.then((value) => setState(() {} ),
-                              //onError: (e,s) {
-                              //print("resume error: ${e.toString()}\n$s");
-                              //return  audioPlayer.stop() ;
-                              //},
-                              //);//resumeAudio();
-                            } else if (playerState == AudioPlayerState.STOPPED || playerState == AudioPlayerState.COMPLETED) {
-                              audioPlayer.play(widget.mp3url);
-                            }
-                          },
-                          child: Icon(playerState == AudioPlayerState.PLAYING ? Icons.pause : Icons.play_arrow),
-                          color: Colors.blue,
-                        ),
-                        Icon(playerState == AudioPlayerState.STOPPED
-                            ? Icons.stop
-                            : playerState == AudioPlayerState.PLAYING
-                                ? Icons.play_arrow
-                                : playerState == AudioPlayerState.PAUSED ? Icons.pause : playerState == AudioPlayerState.COMPLETED ? Icons.close : Icons.radio_button_unchecked),
-                        RaisedButton(
-                          onPressed: () async {
-                            //audioPlayer.stop() .then((value) => setState(() => _isPlaying=false) , onError: () => print( "stop error"));//stopAudio();
-                            await audioPlayer.stop();
-                            //setState(() => playerState=false); //, onError: () => print( "stop error"));//stopAudio();
-                          },
-                          child: Icon(Icons.stop),
-                          color: Colors.blue,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+            "${widget.mp3url.length > 30 ? widget.mp3url.substring(widget.mp3url.length - 29, widget.mp3url.length - 4) : 0}\n------------------------dd-hhmmss\n$_mp3duration\n$_mp3position"),
+        toolbarHeight: 100,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Slider.adaptive(
+                value: _sliderPosition,
+                min: 0,
+                max: 100,
+                label: _sliderPosition.round().toString(),
+                divisions: 100,
+                onChanged: (v) {
+                  setState(() {
+                    _sliderPosition = v;
+                    audioPlayer.seek(Duration(milliseconds: _mp3duration.inMilliseconds ~/ 100 * v.round()));
+                  });
+                }),
+            Container(
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      RaisedButton(
+                        onPressed: () {
+                          if (playerState == AudioPlayerState.PLAYING) {
+                            audioPlayer.pause(); //.then((value) {
+                            //setState(() { playerState=false; });
+                            //},
+                            //onError: (e,s) {
+                            //print( "pause error: ${e.toString()}\n$s");
+                            //return  audioPlayer.stop() ;
+                            //},);//pauseAudio();
+                          } else if (playerState == AudioPlayerState.PAUSED) {
+                            audioPlayer.resume(); //.then((value) => setState(() {} ),
+                            //onError: (e,s) {
+                            //print("resume error: ${e.toString()}\n$s");
+                            //return  audioPlayer.stop() ;
+                            //},
+                            //);//resumeAudio();
+                          } else if (playerState == AudioPlayerState.STOPPED || playerState == AudioPlayerState.COMPLETED) {
+                            audioPlayer.play(widget.mp3url);
+                          }
+                        },
+                        child: Icon(playerState == AudioPlayerState.PLAYING ? Icons.pause : Icons.play_arrow),
+                        color: Colors.blue,
+                      ),
+                      Icon(playerState == AudioPlayerState.STOPPED
+                          ? Icons.stop
+                          : playerState == AudioPlayerState.PLAYING
+                              ? Icons.play_arrow
+                              : playerState == AudioPlayerState.PAUSED ? Icons.pause : playerState == AudioPlayerState.COMPLETED ? Icons.close : Icons.radio_button_unchecked),
+                      RaisedButton(
+                        onPressed: () async {
+                          //audioPlayer.stop() .then((value) => setState(() => _isPlaying=false) , onError: () => print( "stop error"));//stopAudio();
+                          await audioPlayer.stop();
+                          //setState(() => playerState=false); //, onError: () => print( "stop error"));//stopAudio();
+                        },
+                        child: Icon(Icons.stop),
+                        color: Colors.blue,
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              // Row(
-              //   mainAxisAlignment: MainAxisAlignment.spaceAround,
-              //   children: [
-              //     RaisedButton(
-              //       onPressed: () async {
-              //         var path =
-              //         await FilePicker.getFilePath(type: FileType.audio);
-              //         setState(() {
-              //           _isPlaying = true;
-              //         });
-              //         playAudioFromLocalStorage(path);
-              //       },
-              //       child: Text(
-              //         'Load Audio File',
-              //         style: TextStyle(color: Colors.white),
-              //       ),
-              //       color: Colors.blueAccent,
-              //     ),
-              //   ],
-              // ),
-            ],
-          ),
+            ),
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.spaceAround,
+            //   children: [
+            //     RaisedButton(
+            //       onPressed: () async {
+            //         var path =
+            //         await FilePicker.getFilePath(type: FileType.audio);
+            //         setState(() {
+            //           _isPlaying = true;
+            //         });
+            //         playAudioFromLocalStorage(path);
+            //       },
+            //       child: Text(
+            //         'Load Audio File',
+            //         style: TextStyle(color: Colors.white),
+            //       ),
+            //       color: Colors.blueAccent,
+            //     ),
+            //   ],
+            // ),
+          ],
         ),
       ),
     );

@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:contacts_service/contacts_service.dart';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:zadarma_api_flutter/pbxlist.dart';
 import 'package:encrypted_shared_preferences/encrypted_shared_preferences.dart';
 
@@ -93,6 +96,37 @@ class Balance {
   }
 }
 
+Future<void> _askPermissions() async {
+  final permissionStatus = await _getContactPermission();
+  if (permissionStatus != PermissionStatus.granted) {
+    _handleInvalidPermissions(permissionStatus);
+  }
+}
+
+Future<PermissionStatus> _getContactPermission() async {
+  final status = await Permission.contacts.status;
+  if (!status.isGranted && !status.isPermanentlyDenied) {
+    final result = await Permission.contacts.request();
+    return result ?? PermissionStatus.undetermined;
+  } else {
+    return status;
+  }
+}
+
+void _handleInvalidPermissions(PermissionStatus permissionStatus) {
+  if (permissionStatus == PermissionStatus.denied) {
+    throw PlatformException(
+        code: 'PERMISSION_DENIED',
+        message: 'Access to location data denied',
+        details: null);
+  } else if (permissionStatus == PermissionStatus.restricted) {
+    throw PlatformException(
+        code: 'PERMISSION_DISABLED',
+        message: 'Location data is not available on device',
+        details: null);
+  }
+}
+
 void main() {
   runApp(MyApp());
 }
@@ -143,6 +177,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+
+
+
   final GlobalKey<RefreshIndicatorState> _refKey = GlobalKey<RefreshIndicatorState>();
   DateTime _stopDate = DateTime.now();
   DateTime _startDate = DateTime(DateTime.now().year, DateTime.now().month, 1);
@@ -400,6 +437,9 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+
+    _askPermissions();
+
     //SchedulerBinding.instance.addPostFrameCallback((_) {
     //  _refKey.currentState?.show();
     //});
@@ -800,6 +840,7 @@ class CallStatistics extends StatefulWidget {
 class _CallStatisticsState extends State<CallStatistics> {
   String _head = "";
   var _callsList;
+  List<String> _dNameList = [];
 
   @override
   void initState() {
@@ -810,10 +851,17 @@ class _CallStatisticsState extends State<CallStatistics> {
       if (b['status'] == 'success') {
         _head = "start: ${b['start']} end: ${b['end']}";
         _callsList = b['stats'];
+        _callsList.forEach((v) {
+          _getDisplayNameStr(v['to'].toString()).then((value) {
+            _dNameList.add(value);
+
+          }).whenComplete(() => setState(() {}));
+          //setState(() {});
+        });
         print("+callList.length: ${_callsList.length}");
       } else
         _head = "Error: ${b['message']}";
-      setState(() {});
+      //setState(() {});
     });
   }
 
@@ -839,7 +887,18 @@ class _CallStatisticsState extends State<CallStatistics> {
                         color: Colors.orange,
                       ),
                   itemCount: _callsList == null ? 0 : _callsList.length,
-                  itemBuilder: (BuildContext context, int i) {
+                  itemBuilder: (BuildContext context, int i)  {
+                    // String _phNumSt=_callsList[i]['to'].toString();
+                    // //Iterable<Contact> _contact = await
+                    // String _dName="";
+                    // ContactsService.getContactsForPhone(_phNumSt).then((_contact) {
+                    //   if (_contact.length > 0) {
+                    //     print("${_contact.first.displayName}");
+                    //     _contact.forEach((element) {
+                    //       _dName = element.displayName;
+                    //     });
+                    //   }
+                    // });
                     Color _dispC;
                     switch (_callsList[i]['disposition']) {
                       case 'answered':
@@ -892,46 +951,78 @@ class _CallStatisticsState extends State<CallStatistics> {
                                     //fontSize: 12,
                                     backgroundColor: Colors.white70,),
                                 ),
+                                SizedBox(width: 10,),
+                                Text(
+                                  "${NumberFormat("###############0.00########").format(_callsList[i]['billcost'])} ${_callsList[i]['currency']}",
+                                  style: TextStyle(
+                                    backgroundColor: _callsList[i]['billcost'] == 0 ? Colors.grey : Colors.redAccent,
+                                  ),
+                                ),
                                 SizedBox(
                                   width: 10,
                                 ),
                                 Text(
-                                  "(${_callsList[i]['sip']}) ${_callsList[i]['from']}",
-                                  style: TextStyle(
-                                    //fontSize: 12,
-                                    backgroundColor: Colors.white70,),
-                                ),
-                                SizedBox(
-                                  width: 10,
-                                ),
-                                Text(
-                                  "${_callsList[i]['to']}",
-                                  style: TextStyle(
-                                    //fontSize: 12,
-                                    backgroundColor: _dispC,),
-                                ),
+                                  "${_callsList[i]['billseconds'] ~/ 60}:${NumberFormat("00").format(_callsList[i]['billseconds'] % 60)} (${_callsList[i]['cost']} per minutes)",
+                                )
                               ],
                             ),
                           ),
+                          Divider(
+                            height: 5,
+                          ),
                           Row(
                             children: [
-                              Text("${_callsList[i]['description']}"),
+                              Text("From: "),
+                              Text(
+                                "(${_callsList[i]['sip']}) ${_callsList[i]['from']}",
+                                //style: TextStyle(
+                                  //fontSize: 12,
+                                  //backgroundColor: Colors.white70,),
+                              ),
                             ],
                           ),
                           Row(
                             children: [
-                              Text(
-                                "${NumberFormat("###############0.00########").format(_callsList[i]['billcost'])} ${_callsList[i]['currency']}",
-                                style: TextStyle(
-                                  backgroundColor: _callsList[i]['billcost'] == 0 ? Colors.grey : Colors.redAccent,
-                                ),
+                              InkWell(
+                                child: Text("To:"),
+                                onTap: () async {
+                                  String _dName;
+                                  String _phNumSt=_callsList[i]['to'].toString();
+                                  if(await Permission.contacts.isGranted) {
+                                    Iterable<Contact> _contact = await ContactsService.getContactsForPhone(_phNumSt);
+                                    if (_contact.length > 0)
+                                      _contact.forEach((element) {
+                                        _dName = element.displayName;
+                                      });
+                                    else
+                                      _dName = _phNumSt;
+                                  } else
+                                    _dName = _phNumSt;
+                                  return showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) => SimpleDialog(
+                                        title: Text(_phNumSt),
+                                        children: [
+                                          Text(_dName),
+                                        ],
+                                      ));
+                                },
                               ),
                               SizedBox(
-                                width: 10,
+                                width: 20,
                               ),
                               Text(
-                                "${_callsList[i]['billseconds'] ~/ 60}:${NumberFormat("00").format(_callsList[i]['billseconds'] % 60)} (${_callsList[i]['cost']} per minutes)",
+                                "${_callsList[i]['to']} ${_dNameList.length>i?_dNameList[i]:""}",
+                                style: TextStyle(
+                                  //fontSize: 12,
+                                  backgroundColor: _dispC,),
                               ),
+
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Text("${_callsList[i]['description']}"),
                             ],
                           ),
                         ],
@@ -944,4 +1035,23 @@ class _CallStatisticsState extends State<CallStatistics> {
       ),
     );
   }
+
+  Future<String> _getDisplayNameStr(String ph) async {
+    String _dName="";
+    if(await Permission.contacts.isGranted) {
+      Iterable<Contact> _c = await ContactsService.getContactsForPhone(ph);
+      if (_c.length > 0) {
+        print("${_c.first.displayName}");
+        _c.forEach((element) {
+          _dName = element.displayName;
+        });
+      }
+    }
+    return _dName;
+  }
+
+
+
+
+
 }
